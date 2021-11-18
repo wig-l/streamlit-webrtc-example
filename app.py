@@ -202,8 +202,6 @@ def app_facial_landmark():
     fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, device='cpu', flip_input=False, face_detector='blazeface')
 
     class FaceLandmarkVideoProcessor(VideoProcessorBase):
-        def __init__(self) -> None:
-
         def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
             img = frame.to_ndarray(format="rgb24")
             landmarks = fa.get_landmarks(img)

@@ -27,6 +27,8 @@ from streamlit_webrtc import (
     webrtc_streamer,
 )
 import io
+import face_alignment
+from PIL import Image
 def fig2img(fig):
     """Convert a Matplotlib figure to a PIL Image and return it"""
     buf = io.BytesIO()

@@ -26,7 +26,14 @@ from streamlit_webrtc import (
     WebRtcMode,
     webrtc_streamer,
 )
-
+import io
+def fig2img(fig):
+    """Convert a Matplotlib figure to a PIL Image and return it"""
+    buf = io.BytesIO()
+    fig.savefig(buf)
+    buf.seek(0)
+    img = Image.open(buf)
+    return img
 HERE = Path(__file__).parent
 
 logger = logging.getLogger(__name__)
@@ -84,73 +91,34 @@ RTC_CONFIGURATION = RTCConfiguration(
 
 
 def main():
-    st.header("WebRTC demo")
-
-    object_detection_page = "Real time object detection (sendrecv)"
-    video_filters_page = (
-        "Real time video transform with simple OpenCV filters (sendrecv)"
+    st.header("Real-time Facial Landmarking, Mesh, and Detection")
+    facial_landmark_page = (
+        "Facial landmarks with BlazeFace"
     )
-    audio_filter_page = "Real time audio filter (sendrecv)"
-    delayed_echo_page = "Delayed echo (sendrecv)"
-    streaming_page = (
-        "Consuming media files on server-side and streaming it to browser (recvonly)"
+    mesh_page = (
+        "Facial mesh with MediaPipe"
     )
-    video_sendonly_page = (
-        "WebRTC is sendonly and images are shown via st.image() (sendonly)"
-    )
-    audio_sendonly_page = (
-        "WebRTC is sendonly and audio frames are visualized with matplotlib (sendonly)"
-    )
-    loopback_page = "Simple video and audio loopback (sendrecv)"
-    media_constraints_page = (
-        "Configure media constraints and HTML element styles with loopback (sendrecv)"
+    detection_page = (
+        "Facial detection"
     )
     programatically_control_page = "Control the playing state programatically"
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
         [
-            object_detection_page,
-            video_filters_page,
-            audio_filter_page,
-            delayed_echo_page,
-            streaming_page,
-            video_sendonly_page,
-            audio_sendonly_page,
-            loopback_page,
-            media_constraints_page,
-            programatically_control_page,
+            facial_landmark_page,
+            mesh_page,
+            detection_page
         ],
     )
     st.subheader(app_mode)
 
-    if app_mode == video_filters_page:
-        app_video_filters()
-    elif app_mode == object_detection_page:
-        app_object_detection()
-    elif app_mode == audio_filter_page:
-        app_audio_filter()
-    elif app_mode == delayed_echo_page:
-        app_delayed_echo()
-    elif app_mode == streaming_page:
-        app_streaming()
-    elif app_mode == video_sendonly_page:
-        app_sendonly_video()
-    elif app_mode == audio_sendonly_page:
-        app_sendonly_audio()
-    elif app_mode == loopback_page:
-        app_loopback()
-    elif app_mode == media_constraints_page:
-        app_media_constraints()
-    elif app_mode == programatically_control_page:
-        app_programatically_play()
+    if app_mode == facial_landmark_page:
+        app_facial_landmark()
+    elif app_mode == mesh_page:
+        app_facial_landmark()
+    elif app_mode == detection_page:
+        app_facial_landmark()
 
-    st.sidebar.markdown(
-        """
----
-<a href="https://www.buymeacoffee.com/whitphx" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="180" height="50" ></a>
-    """,  # noqa: E501
-        unsafe_allow_html=True,
-    )
 
     logger.debug("=== Alive threads ===")
     for thread in threading.enumerate():
@@ -229,6 +197,32 @@ def app_video_filters():
         "Many thanks to the project."
     )
 
+def app_facial_landmark():
+    """ Facial landmarking from https://github.com/1adrianb/face-alignment"""
+
+    class FaceLandmarkVideoProcessor(VideoProcessorBase):
+        def __init__(self) -> None:
+            self.fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, device='cpu', flip_input=False, face_detector='blazeface')
+
+        def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+            img = frame.to_ndarray(format="rgb24")
+            landmarks = fa.get_landmarks(img)
+            plt.imshow(img)
+            for detection in img:
+                plt.scatter(detection[:,0], detection[:,1], 2)
+            plt.axis('off')
+            fig = plt.gcf()
+            img = fig2img(fig)
+            return av.VideoFrame.from_ndarray(np.array(img).astype(np.uint8), format="rgb24")
+
+    webrtc_ctx = webrtc_streamer(
+        key="face-landmark",
+        mode=WebRtcMode.SENDRECV,
+        rtc_configuration=RTC_CONFIGURATION,
+        video_processor_factory=FaceLandmarkVideoProcessor,
+        media_stream_constraints={"video": True, "audio": False},
+        async_processing=True,
+    )
 
 def app_audio_filter():
     DEFAULT_GAIN = 1.0

@@ -199,10 +199,10 @@ def app_video_filters():
 
 def app_facial_landmark():
     """ Facial landmarking from https://github.com/1adrianb/face-alignment"""
+    fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, device='cpu', flip_input=False, face_detector='blazeface')
 
     class FaceLandmarkVideoProcessor(VideoProcessorBase):
         def __init__(self) -> None:
-            self.fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, device='cpu', flip_input=False, face_detector='blazeface')
 
         def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
             img = frame.to_ndarray(format="rgb24")

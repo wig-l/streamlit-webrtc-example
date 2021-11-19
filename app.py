@@ -215,7 +215,7 @@ def app_facial_landmark():
             plt.axis('off')
             fig = plt.gcf()
             img = fig2img(fig)
-            return av.VideoFrame.from_ndarray(np.array(img), format="rgb24")
+            return av.VideoFrame.from_image(img)
 
     webrtc_ctx = webrtc_streamer(
         key="face-landmark",

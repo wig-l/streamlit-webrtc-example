@@ -109,9 +109,9 @@ def main():
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
         [
-            facial_landmark_page,
+            # facial_landmark_page,
             mesh_page,
-            detection_page
+            # detection_page
         ],
     )
     st.subheader(app_mode)

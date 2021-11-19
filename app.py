@@ -29,6 +29,8 @@ from streamlit_webrtc import (
 import io
 import face_alignment
 from PIL import Image
+import mediapipe as mp
+
 def fig2img(fig):
     """Convert a Matplotlib figure to a PIL Image and return it"""
     buf = io.BytesIO()
@@ -117,7 +119,7 @@ def main():
     if app_mode == facial_landmark_page:
         app_facial_landmark()
     elif app_mode == mesh_page:
-        app_facial_landmark()
+        app_mediapipe_mesh()
     elif app_mode == detection_page:
         app_facial_landmark()
 
@@ -222,6 +224,64 @@ def app_facial_landmark():
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
         video_processor_factory=FaceLandmarkVideoProcessor,
+        media_stream_constraints={"video": True, "audio": False},
+        async_processing=True,
+    )
+def app_mediapipe_mesh():
+    mp_drawing = mp.solutions.drawing_utils
+    mp_drawing_styles = mp.solutions.drawing_styles
+    mp_face_mesh = mp.solutions.face_mesh
+    drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
+
+    class MediaPipeVideoProcessor(VideoProcessorBase):
+        def __init__(self) -> None:
+        def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+            image = frame.to_ndarray(format="bgr24")
+            with mp_face_mesh.FaceMesh(
+                static_image_mode=True,
+                max_num_faces=1,
+                refine_landmarks=True,
+                min_detection_confidence=0.5) as face_mesh:
+                image.flags.writeable = False
+                results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
+                image.flags.writeable = True
+                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                results = face_mesh.process(image)
+
+                if results.multi_face_landmarks:
+                    for face_landmarks in results.multi_face_landmarks:
+                        mp_drawing.draw_landmarks(
+                            image=image,
+                            landmark_list=face_landmarks,
+                            connections=mp_face_mesh.FACEMESH_TESSELATION,
+                            landmark_drawing_spec=None,
+                            connection_drawing_spec=mp_drawing_styles
+                            .get_default_face_mesh_tesselation_style())
+                        mp_drawing.draw_landmarks(
+                            image=image,
+                            landmark_list=face_landmarks,
+                            connections=mp_face_mesh.FACEMESH_CONTOURS,
+                            landmark_drawing_spec=None,
+                            connection_drawing_spec=mp_drawing_styles
+                            .get_default_face_mesh_contours_style())
+                        mp_drawing.draw_landmarks(
+                            image=image,
+                            landmark_list=face_landmarks,
+                            connections=mp_face_mesh.FACEMESH_IRISES,
+                            landmark_drawing_spec=None,
+                            connection_drawing_spec=mp_drawing_styles
+                            .get_default_face_mesh_iris_connections_style())
+
+
+            return av.VideoFrame.from_ndarray(img, format="bgr24")
+
+    webrtc_ctx = webrtc_streamer(
+        key="face-mediapipe",
+        mode=WebRtcMode.SENDRECV,
+        rtc_configuration=RTC_CONFIGURATION,
+        video_processor_factory=MediaPipeVideoProcessor,
         media_stream_constraints={"video": True, "audio": False},
         async_processing=True,
     )

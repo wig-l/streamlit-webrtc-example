@@ -235,19 +235,21 @@ def app_mediapipe_mesh():
 
     class MediaPipeVideoProcessor(VideoProcessorBase):
         def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-            image = frame.to_ndarray(format="bgr24")
+            image = frame.to_ndarray(format="rgb24")
             with mp_face_mesh.FaceMesh(
                 static_image_mode=True,
                 max_num_faces=1,
                 refine_landmarks=True,
                 min_detection_confidence=0.5) as face_mesh:
                 image.flags.writeable = False
-                results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+                # results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+                results = face_mesh.process(image)
+
 
                 image.flags.writeable = True
                 image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
                 # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                results = face_mesh.process(image)
+                # results = face_mesh.process(image)
 
                 if results.multi_face_landmarks:
                     for face_landmarks in results.multi_face_landmarks:

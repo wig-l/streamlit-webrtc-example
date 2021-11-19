@@ -234,7 +234,6 @@ def app_mediapipe_mesh():
     drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 
     class MediaPipeVideoProcessor(VideoProcessorBase):
-        def __init__(self) -> None:
         def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
             image = frame.to_ndarray(format="bgr24")
             with mp_face_mesh.FaceMesh(

@@ -274,7 +274,7 @@ def app_mediapipe_mesh():
                             .get_default_face_mesh_iris_connections_style())
 
 
-            return av.VideoFrame.from_ndarray(img, format="bgr24")
+            return av.VideoFrame.from_ndarray(image, format="bgr24")
 
     webrtc_ctx = webrtc_streamer(
         key="face-mediapipe",

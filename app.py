@@ -335,8 +335,8 @@ def app_mediapipe_mesh_only():
             with mp_face_mesh.FaceMesh(
                 static_image_mode=True,
                 max_num_faces=1,
-                # refine_landmarks=True,
-                refine_landmarks=False,
+                refine_landmarks=True,
+                # refine_landmarks=False,
 
                 min_detection_confidence=0.5) as face_mesh:
                 image.flags.writeable = False

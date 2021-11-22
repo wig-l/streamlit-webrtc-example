@@ -335,7 +335,9 @@ def app_mediapipe_mesh_only():
             with mp_face_mesh.FaceMesh(
                 static_image_mode=True,
                 max_num_faces=1,
-                refine_landmarks=True,
+                # refine_landmarks=True,
+                refine_landmarks=False,
+
                 min_detection_confidence=0.5) as face_mesh:
                 image.flags.writeable = False
                 # results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))

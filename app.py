@@ -97,31 +97,37 @@ RTC_CONFIGURATION = RTCConfiguration(
 def main():
     st.header("Real-time Facial Landmarking, Mesh, and Detection")
     facial_landmark_page = (
-        "Facial landmarks with BlazeFace"
+        "Facial landmarks without tesselation"
     )
     mesh_page = (
-        "Facial mesh with MediaPipe"
+        "Facial mesh with tesselation"
     )
     detection_page = (
         "Facial detection"
+    )
+    loopback_page = (
+        "Simple loopback"
     )
     programatically_control_page = "Control the playing state programatically"
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
         [
-            # facial_landmark_page,
+            facial_landmark_page,
             mesh_page,
-            # detection_page
+            detection_page,
+            loopback_page
         ],
     )
     st.subheader(app_mode)
 
     if app_mode == facial_landmark_page:
-        app_facial_landmark()
+        app_mediapipe_mesh_only()
     elif app_mode == mesh_page:
         app_mediapipe_mesh()
     elif app_mode == detection_page:
-        app_facial_landmark()
+        app_face_detection()
+    elif app_mode == loopback_page:
+        app_loopback()
 
 
     logger.debug("=== Alive threads ===")
@@ -283,6 +289,96 @@ def app_mediapipe_mesh():
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
         video_processor_factory=MediaPipeVideoProcessor,
+        media_stream_constraints={"video": True, "audio": False},
+        async_processing=True,
+    )
+
+def app_face_detection():
+    mp_face_detection = mp.solutions.face_detection
+    mp_drawing = mp.solutions.drawing_utils
+
+    class MediaPipeFaceDetectionProcessor(VideoProcessorBase):
+        def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+            image = frame.to_ndarray(format="rgb24")
+            with mp_face_detection.FaceDetection(
+                model_selection=0, min_detection_confidence=0.5) as face_detection:
+
+                # To improve performance, optionally mark the image as not writeable to
+                # pass by reference.
+                image.flags.writeable = False
+                results = face_detection.process(image)
+
+                # Draw the face detection annotations on the image.
+                image.flags.writeable = True
+                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                if results.detections:
+                    for detection in results.detections:
+                        mp_drawing.draw_detection(image, detection)
+            return av.VideoFrame.from_ndarray(image, format="bgr24")
+    webrtc_ctx = webrtc_streamer(
+        key="face-detection-mediapipe",
+        mode=WebRtcMode.SENDRECV,
+        rtc_configuration=RTC_CONFIGURATION,
+        video_processor_factory=MediaPipeFaceDetectionProcessor,
+        media_stream_constraints={"video": True, "audio": False},
+        async_processing=True,
+    )        
+def app_mediapipe_mesh_only():
+    mp_drawing = mp.solutions.drawing_utils
+    mp_drawing_styles = mp.solutions.drawing_styles
+    mp_face_mesh = mp.solutions.face_mesh
+    drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
+
+    class MediaPipeMeshNoTesselation(VideoProcessorBase):
+        def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+            image = frame.to_ndarray(format="rgb24")
+            with mp_face_mesh.FaceMesh(
+                static_image_mode=True,
+                max_num_faces=1,
+                refine_landmarks=True,
+                min_detection_confidence=0.5) as face_mesh:
+                image.flags.writeable = False
+                # results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+                results = face_mesh.process(image)
+
+
+                image.flags.writeable = True
+                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                # results = face_mesh.process(image)
+
+                if results.multi_face_landmarks:
+                    for face_landmarks in results.multi_face_landmarks:
+                        # mp_drawing.draw_landmarks(
+                        #     image=image,
+                        #     landmark_list=face_landmarks,
+                        #     connections=mp_face_mesh.FACEMESH_TESSELATION,
+                        #     landmark_drawing_spec=None,
+                        #     connection_drawing_spec=mp_drawing_styles
+                        #     .get_default_face_mesh_tesselation_style())
+                        mp_drawing.draw_landmarks(
+                            image=image,
+                            landmark_list=face_landmarks,
+                            connections=mp_face_mesh.FACEMESH_CONTOURS,
+                            landmark_drawing_spec=None,
+                            connection_drawing_spec=mp_drawing_styles
+                            .get_default_face_mesh_contours_style())
+                        mp_drawing.draw_landmarks(
+                            image=image,
+                            landmark_list=face_landmarks,
+                            connections=mp_face_mesh.FACEMESH_IRISES,
+                            landmark_drawing_spec=None,
+                            connection_drawing_spec=mp_drawing_styles
+                            .get_default_face_mesh_iris_connections_style())
+
+
+            return av.VideoFrame.from_ndarray(image, format="bgr24")
+
+    webrtc_ctx = webrtc_streamer(
+        key="face-mediapipe-no-tesselation",
+        mode=WebRtcMode.SENDRECV,
+        rtc_configuration=RTC_CONFIGURATION,
+        video_processor_factory=MediaPipeMeshNoTesselation,
         media_stream_constraints={"video": True, "audio": False},
         async_processing=True,
     )

@@ -115,7 +115,7 @@ def main():
             facial_landmark_page,
             mesh_page,
             detection_page,
-            loopback_page
+            # loopback_page
         ],
     )
     st.subheader(app_mode)
@@ -126,8 +126,8 @@ def main():
         app_mediapipe_mesh()
     elif app_mode == detection_page:
         app_face_detection()
-    elif app_mode == loopback_page:
-        app_loopback()
+    # elif app_mode == loopback_page:
+    #     app_loopback()
 
 
     logger.debug("=== Alive threads ===")

@@ -8,5 +8,4 @@ streamlit==1.11.1
 streamlit_webrtc==0.43.0
 typing_extensions==4.1.1
 protobuf~=3.19.0
-face-alignment
 mediapipe
